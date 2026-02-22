@@ -46,7 +46,8 @@ chmod 600 /opt/catalyst-faucet/env/*.env
 Bring the stack up:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env up -d --build
+cp /opt/catalyst-faucet/env/caddy.env ./.env
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 Then:

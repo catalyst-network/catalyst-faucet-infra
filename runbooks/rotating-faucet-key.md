@@ -63,7 +63,8 @@ Recommended: `600` owned by `root` or the deploy user only.
 ### 5) Restart backend
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env up -d backend
+cp /opt/catalyst-faucet/env/caddy.env ./.env
+docker-compose -f docker-compose.prod.yml up -d backend
 ```
 
 Check health:

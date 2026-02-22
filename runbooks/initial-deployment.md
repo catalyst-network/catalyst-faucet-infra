@@ -7,7 +7,7 @@ This runbook deploys the faucet securely on a single Linux VM using Docker Compo
 - **Domain** for the faucet (e.g. `faucet.example.com`)
 - VM with public IPv4 (and optionally IPv6)
 - Ports **80/443** reachable from the internet
-- Docker Engine + Docker Compose plugin installed
+- Docker Engine + Docker Compose installed
 - Cloudflare Turnstile site/secret keys created for your domain
 - Catalyst testnet RPC URL
 
@@ -43,8 +43,9 @@ Important:
 - If you change values in `web.env` (e.g. API base URL or Turnstile site key), **rebuild** the web image after edits:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env build web
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env up -d web
+cp /opt/catalyst-faucet/env/caddy.env ./.env
+docker-compose -f docker-compose.prod.yml build web
+docker-compose -f docker-compose.prod.yml up -d web
 ```
 
 ### 3) DNS + TLS
@@ -62,7 +63,8 @@ Apply the rules in `security/firewall-ufw.md` (or equivalent for your host firew
 From this repo:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env up -d --build
+cp /opt/catalyst-faucet/env/caddy.env ./.env
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### 6) Verify
@@ -79,7 +81,7 @@ Expected `/api/v1/info` includes:
 
 ### 7) Post-deploy hardening checklist
 
-- Restrict `/api/v1/admin/*` at the edge (set `ADMIN_ALLOWLIST_CIDRS` in `caddy.env`).
+- Restrict `/api/v1/admin/*` at the edge (see the commented example block in `Caddyfile`).
 - Confirm Postgres/Redis are **not** exposed publicly (they’re on an internal docker network).
 - Store `backend.env` with `chmod 600` and in your secret manager / vault as the source of truth.
 

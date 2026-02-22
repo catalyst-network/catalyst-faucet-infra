@@ -16,7 +16,8 @@ Steps:
 3) Start the stack:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env up -d
+cp /opt/catalyst-faucet/env/caddy.env ./.env
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 Caddy will automatically obtain and renew certificates.

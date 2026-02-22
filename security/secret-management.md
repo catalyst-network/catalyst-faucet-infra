@@ -23,7 +23,7 @@ sudo chmod 700 /opt/catalyst-faucet/env
 sudo chmod 600 /opt/catalyst-faucet/env/*.env
 ```
 
-If you run docker compose as a non-root deploy user, ensure only that user (and root) can read the env files.
+If you run `docker-compose` as a non-root deploy user, ensure only that user (and root) can read the env files.
 
 ### Rotation strategy
 

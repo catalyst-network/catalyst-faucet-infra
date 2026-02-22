@@ -1,4 +1,4 @@
-name: catalyst-faucet
+version: "3.8"
 
 services:
   postgres:
@@ -43,10 +43,8 @@ services:
       HOST: "0.0.0.0"
       REDIS_URL: redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
     networks:
       - internal
     expose:
@@ -67,7 +65,7 @@ services:
       context: ../catalyst-faucet-web
     restart: unless-stopped
     # NEXT_PUBLIC_* values are baked into the client bundle. If you change web.env,
-    # rebuild the image: `docker compose -f docker-compose.prod.yml build web`.
+    # rebuild the image: `docker-compose -f docker-compose.prod.yml build web`.
     env_file:
       - /opt/catalyst-faucet/env/web.env
     environment:
@@ -95,10 +93,8 @@ services:
       # alternate TLS stanza in the Caddyfile.
       # - /opt/catalyst-faucet/env/certs:/etc/caddy/certs:ro
     depends_on:
-      backend:
-        condition: service_healthy
-      web:
-        condition: service_started
+      - backend
+      - web
     networks:
       - internal
       - public
@@ -122,8 +118,7 @@ services:
     volumes:
       - /opt/catalyst-faucet/backups:/backups
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - internal
 

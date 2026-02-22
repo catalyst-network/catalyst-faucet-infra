@@ -16,7 +16,8 @@ The production compose already includes `postgres_backup`. Ensure:
 Start (or restart) the backup service:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file /opt/catalyst-faucet/env/caddy.env up -d postgres_backup
+cp /opt/catalyst-faucet/env/caddy.env ./.env
+docker-compose -f docker-compose.prod.yml up -d postgres_backup
 ```
 
 ### Configure retention
