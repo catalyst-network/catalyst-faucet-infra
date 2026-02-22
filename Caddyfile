@@ -1,0 +1,59 @@
+{
+	# Keep logs JSON for easier ingestion.
+	log {
+		format json
+		level INFO
+	}
+	# Email is optional but recommended for ACME.
+	# email you@example.com
+}
+
+{$FAUCET_DOMAIN} {
+	encode zstd gzip
+
+	# Security headers (tune to your needs).
+	header {
+		# HSTS (enable only if you will keep HTTPS permanently).
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+	}
+
+	# --- Admin endpoint hardening (recommended) ---
+	# By default, admin endpoints are token-protected by the backend. Defense-in-depth:
+	# restrict them at the edge to your office/VPN IP ranges.
+	#
+	# Example (uncomment and set your CIDRs):
+	#
+	# @admin path /api/v1/admin/*
+	# @adminAllowed {
+	# 	path /api/v1/admin/*
+	# 	remote_ip 203.0.113.10/32 198.51.100.0/24
+	# }
+	# handle @admin {
+	# 	handle @adminAllowed {
+	# 		handle_path /api/* {
+	# 			reverse_proxy backend:8080
+	# 		}
+	# 	}
+	# 	respond "Forbidden" 403
+	# }
+
+	# Backend API is exposed under /api/* and the prefix is stripped.
+	handle_path /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Everything else goes to the web UI.
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# --- If you are behind Cloudflare proxy and want Origin CA certs ---
+	# Comment the default HTTPS (ACME) behavior above (none needed) and instead:
+	#
+	# tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+}
+

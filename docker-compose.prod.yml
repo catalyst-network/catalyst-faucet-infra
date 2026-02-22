@@ -1,0 +1,140 @@
+name: catalyst-faucet
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - /opt/catalyst-faucet/env/postgres.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ${FAUCET_BACKEND_IMAGE:-catalyst-faucet-backend:local}
+    build:
+      context: ../catalyst-faucet
+    restart: unless-stopped
+    env_file:
+      - /opt/catalyst-faucet/env/backend.env
+    environment:
+      # Keep the backend on a dedicated internal port.
+      PORT: "8080"
+      HOST: "0.0.0.0"
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    expose:
+      - "8080"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ${FAUCET_WEB_IMAGE:-catalyst-faucet-web:local}
+    build:
+      context: ../catalyst-faucet-web
+    restart: unless-stopped
+    # NEXT_PUBLIC_* values are baked into the client bundle. If you change web.env,
+    # rebuild the image: `docker compose -f docker-compose.prod.yml build web`.
+    env_file:
+      - /opt/catalyst-faucet/env/web.env
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    networks:
+      - internal
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Used by the Caddyfile via {$VAR} placeholders.
+      FAUCET_DOMAIN: ${FAUCET_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      # If you use Cloudflare Origin CA certs, mount them here and enable the
+      # alternate TLS stanza in the Caddyfile.
+      # - /opt/catalyst-faucet/env/certs:/etc/caddy/certs:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      web:
+        condition: service_started
+    networks:
+      - internal
+      - public
+
+  # Optional: simple daily logical backups (pg_dump) to /opt/catalyst-faucet/backups
+  postgres_backup:
+    image: prodrigestivill/postgres-backup-local:16
+    restart: unless-stopped
+    env_file:
+      - /opt/catalyst-faucet/env/postgres.env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      # Run once per day. Change as desired.
+      SCHEDULE: "@daily"
+      # Keep 14 daily backups by default.
+      BACKUP_KEEP_DAYS: "14"
+      BACKUP_KEEP_WEEKS: "0"
+      BACKUP_KEEP_MONTHS: "0"
+      HEALTHCHECK_PORT: "8081"
+    volumes:
+      - /opt/catalyst-faucet/backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  public:
+  internal:
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+

@@ -1,0 +1,17 @@
+.DS_Store
+*.swp
+
+# Local env/secrets (never commit)
+env/*.env
+*.env
+.env
+.env.*
+
+# Local data/backups
+data/
+backups/
+
+# Caddy local volumes (when not using named volumes)
+caddy_data/
+caddy_config/
+
